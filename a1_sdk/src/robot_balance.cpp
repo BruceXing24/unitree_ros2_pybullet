@@ -102,11 +102,10 @@ public:
         // joint_angles[2] = 0.0;
         // joint_angles[3] = 0.0;
 
-        pose[0] += joy_msg->axes[0] / 100;
-        pose[1] += joy_msg->axes[1] / 100;
-        pose[2] += joy_msg->axes[6] / 100;
-        pose[3] += joy_msg->axes[7] / 100;
-        std::cout << "pose==" << pose[0] << " " << pose[1] << " " << pose[2] << " " << pose[3] << std::endl;
+        pose[0] += joy_msg->axes[0] / 30;
+        pose[1] += joy_msg->axes[1] / 30;
+        pose[2] += joy_msg->axes[6] / 30;
+        pose[3] += joy_msg->axes[7] / 30;
     }
     void estiCallback(const a1_msg::msg::RobotStates::SharedPtr robot_state)
     {
@@ -161,28 +160,12 @@ public:
         _forceFeetGlobal = - balCtrl->calF(_ddPcd, _dWbd, _B2G_RotMat, _posFeet2BGlobal, _contact);  //阻断对外界的作用力
         _forceFeetBody = _G2B_RotMat * _forceFeetGlobal;
 
-
         _q = vec34ToVec12(Lowstate->getQ());
         _tau = robotModel->getTau(_q, _forceFeetBody);
-
         for (int i = 0; i<12; i++){
             _tau[i] = saturation(_tau(i),Limit);
             cmd_joints.joints_torque[i] = _tau[i];
         }
-        // std::cout<< "_pcd==" << _pcd<<std::endl;
-        // std::cout<< "_posBody==" << _posBody<<std::endl;   
-        // std::cout<< "_velBody==" << _velBody<<std::endl;
-
-        // std::cout<< "_Rd==" << _Rd<<std::endl;
-        // std::cout<< "_ddPcd==" << _ddPcd <<std::endl;
-        // std::cout<< "_dWbd==" << _dWbd <<std::endl;
-
-        // std::cout<<"_B2G_RotMat"<<_B2G_RotMat<<std::endl;        
-        // std::cout<< "_posFeet2BGlobal=="<<_posFeet2BGlobal <<std::endl;
-        // std::cout<<"contact"<<_contact<<std::endl;
-        std::cout<< "_forceFeetGlobal=="<<_forceFeetBody <<std::endl;
-        // std::cout<<"_tau==="<<_tau<<std::endl;
- 
         joint_state_publisher->publish(cmd_joints);
     }
 

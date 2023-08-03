@@ -67,7 +67,9 @@ class simulator(Node):
                             0.16034487 , 2.6450228  ,-2.69653255, -0.16098723, 2.64521532, -2.69562313])
         self.duration = 1000.
         self.percent = 0.
-
+        
+        self.pybullet_client.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME, 0)
+        self.pybullet_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
 
     def cmd_callback(self,msg:JointState):
         for i in range(12):
@@ -92,10 +94,10 @@ class simulator(Node):
         self.pub_contact()
         self.estimator_pub()
         self.pub_feet_state()
-        if self.init_counter<1000:
+        if self.init_counter<500:
             self.motors.positions_control( self.target_angles*180/np.pi)
         else:
-            if self.init_counter==1000:
+            if self.init_counter==500:
                 print("torque control activated")
                 self.motors.disable_PandV()
 

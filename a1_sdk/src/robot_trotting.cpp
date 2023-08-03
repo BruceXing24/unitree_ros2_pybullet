@@ -98,13 +98,18 @@ public:
         pose[2] += joy_msg->axes[6] / 100;
         pose[3] += joy_msg->axes[7] / 100;
         // std::cout << "pose==" << pose[0] << " " << pose[1] << " " << pose[2] << " " << pose[3] << std::endl;
-        std::cout << "pose==" << pose[0]  << std::endl;
+        std::cout << "pose1==" << pose[1] << std::endl;
+        std::cout << "pose0==" << pose[0]   << std::endl;
+        std::cout << "pose3==" << pose[3]  << std::endl;
 
-        _vCmdGlobal << 0.1, 0 , 0;
-        _wCmdGlobal << 0, 0, 0;
-
-
-
+        _vCmdGlobal << pose[1]+0.1, pose[0] , 0;
+        _wCmdGlobal << 0, 0, pose[3];
+        if(joy_msg->buttons[6]){
+            pose[0] = 0;
+            pose[1] = -0.1;
+            pose[2] = 0;
+            pose[3] = 0;
+        }
     }
     void estiCallback(const a1_msg::msg::RobotStates::SharedPtr robot_state)
     {
@@ -165,12 +170,7 @@ public:
         _dYaw =_wvBody[2];
 
         _posFeet2BGlobal = robotModel->getFeet2BPositions(*Lowstate,FrameType::GLOBAL);
-        // std::cout<<"_posFeet2BGlobal=="<<_posFeet2BGlobal<<std::endl;  ✓
-        // std::cout<<"_posFeetGlobal=="<<_posFeetGlobal<<std::endl;      ✓
-        // std::cout<<"_velFeetGlobal=="<<_velFeetGlobal<<std::endl;      ✓
-        // std::cout<<"_B2G_RotMat=="<<_B2G_RotMat<<std::endl;            ✓
-        // std::cout<<"_yaw=="<<_yaw<<std::endl;                          ✓
-        // std::cout<<"_dYaw=="<<_dYaw<<std::endl;                        ✓
+
 
 
         gaitWave->calcContactPhase(phase_result,contact_result,WaveStatus::WAVE_ALL);
@@ -178,30 +178,19 @@ public:
         gaitGenerator->_contact = &contact_result;
         // std::cout<<"contact_result=="<<contact_result<<std::endl;
         // _contact = contact_result;
+        std::cout<<"_wCmdGlobal(2)=="<<_wCmdGlobal(2)<<std::endl;
+        std::cout<<"_dYaw=="<<_dYaw<<std::endl;
 
         gaitGenerator->setGait(_vCmdGlobal.segment(0,2), _wCmdGlobal(2), _gaitHeight);  //计算得到足端轨迹
         gaitGenerator->run(_posFeetGlobalGoal, _velFeetGlobalGoal,_posFeetGlobal,_velBody,_yaw,_dYaw,_posBody);
         
         
-        // std::cout<<"_posFeetGlobalGoal=="<<_posFeetGlobalGoal<<std::endl;
-        // std::cout<<"_velFeetGlobalGoal=="<<_velFeetGlobalGoal<<std::endl;
 
 
 
 
         calcTau();
         calcQQd(); 
-
-    //  startTime = getSystemTime();
-    // _ctrlComp->sendRecv();
-    // _ctrlComp->runWaveGen();
-    // _ctrlComp->estimator->run();
-    // if(!checkSafty()){
-    //     _ctrlComp->ioInter->setPassive();
-    // }
-    // //repeat current condition 
-    // if(_mode == FSMMode::NORMAL){
-    //     _currentState->run();
 
     }
 
@@ -212,8 +201,7 @@ public:
 
         _ddPcd = _Kpp * (_pcd - _posBody) + _Kdp * (_vCmdGlobal - _velBody);
         _dWbd = _kpw * rotMatToExp(_Rd * _G2B_RotMat) + _Kdw * (Vec3(0, 0, 0) - _wvBody);
-        // std::cout<<"_ddPcd=="<<_ddPcd<<std::endl;
-        // std::cout<<"_dWbd=="<<_dWbd<<std::endl;
+
 
         _ddPcd(0) = saturation(_ddPcd(0), Vec2(-3, 3));
         _ddPcd(1) = saturation(_ddPcd(1), Vec2(-3, 3));
@@ -222,13 +210,11 @@ public:
         _dWbd(0) = saturation(_dWbd(0), Vec2(-40, 40));
         _dWbd(1) = saturation(_dWbd(1), Vec2(-40, 40));
         _dWbd(2) = saturation(_dWbd(2), Vec2(-10, 10));
-        // std::cout<<"_contact=="<<_contact<<std::endl;
 
         _forceFeetGlobal = - balCtrl->calF(_ddPcd, _dWbd, _B2G_RotMat, _posFeet2BGlobal, contact_result);  //阻断对外界的作用力
 
         _forceFeetBody = _G2B_RotMat * _forceFeetGlobal;
-        // std::cout<<"_forceFeetBody=="<<_forceFeetBody<<std::endl;
-        // std::cout<<"_B2G_RotMat=="<<_B2G_RotMat<<std::endl;
+
 
 
         for(int i(0); i<4; ++i){
@@ -238,11 +224,9 @@ public:
         }
         
         _q = vec34ToVec12(Lowstate->getQ());
-        // std::cout<<"_q"<<_q<<std::endl;
 
         _tau = robotModel->getTau(_q, _forceFeetBody);
 
-        // std::cout<<"_tau"<<_tau<<std::endl;
 
     }
 
@@ -261,12 +245,6 @@ public:
         _qGoal = robotModel->getQ(_posFeet2BGoal, FrameType::BODY);      // 各个关节的目标角度
         _qdGoal = robotModel->getQd(_posFeet2B, _velFeet2BGoal, FrameType::BODY); // 各个关节的目标角速度        
         _dq = vec34ToVec12(Lowstate->getQd());
-
-        // std::cout<<"_qGoal"<<_qGoal<<std::endl;
-        // std::cout<<"_qdGoal"<<_qdGoal<<std::endl;
-        // std::cout<<"_dq"<<_dq<<std::endl;
-
-        // std::cout<<"_velFeet2BGoal=="<<_velFeet2BGoal<<std::endl;
 
 
         for (int i = 0; i<12; i++){
@@ -330,40 +308,3 @@ int main(int argc, char **argv)
 }
 
 
-
-// *_contact==0
-// 1
-// 1
-// 0
-// phase====0.032
-// 0.032
-// 0.032
-// 0.032
-// phase====0.561
-// 0.561
-// 0.561
-// 0.561
-// *_contact==0
-// 1
-// 1
-// 0
-
-
-// phase====0.967
-// 0.967
-// 0.967
-// 0.967
-// *_contact==0
-// 1
-// 1
-// 0
-
-
-// phase====0.432
-// 0.432
-// 0.432
-// 0.432
-// *_contact==1
-// 0
-// 0
-// 1

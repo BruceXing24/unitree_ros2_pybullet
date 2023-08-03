@@ -59,7 +59,8 @@ class simulator(Node):
                             0.16034487 , 2.6450228  ,-2.69653255, -0.16098723, 2.64521532, -2.69562313])
         self.duration = 1000.
         self.percent = 0.
-
+        self.pybullet_client.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME, 0)
+        self.pybullet_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
 
     def cmd_callback(self,msg:JointState):
         for i in range(12):
@@ -95,7 +96,7 @@ class simulator(Node):
             torques = self.motors.pose2torque_2(self._desire_q,self.current_angle,self.current_vel,self._desire_dq,self._ff_tau)
 
             self.motors.torque_control(torques)            
-            if self.init_counter % 240 ==0:
+            if self.init_counter % 440 ==0:
                 print("torque control working")
             # time.sleep(0.01)
 

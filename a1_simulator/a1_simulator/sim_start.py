@@ -28,7 +28,6 @@ class simulator(Node):
         self.pybullet_client.setGravity(0, 0, -9.8)
 
         self.init_counter = 0
-
         ## pybullet debug line
         self.pybullet_client.setDebugObjectColor(self.robot_id, -1, objectDebugColorRGB=[1, 0, 0])
 
@@ -41,6 +40,8 @@ class simulator(Node):
         self.joints = np.array([0,39.7, -75, 0,39.7, -75, 0,39.7, -75, 0,39.7, -75])
         self.subscription = self.create_subscription(JointAngles,'/robot_joints',self.joint_callback,10)
 
+        self.pybullet_client.configureDebugVisualizer(p.COV_ENABLE_WIREFRAME, 0)
+        self.pybullet_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
 
     def joint_callback(self,msg:JointAngles):
         self.joints = np.array(msg.joint_angles)
@@ -63,10 +64,7 @@ class simulator(Node):
                 scaled_force  = [0,0,0]
                 contact_force = contact[9]
                 contact_direction = contact[7]
-
-                print(contact_direction)
-
-
+                # print(contact_direction)
                 contact_position = contact[6]
                 # print(contact_direction)
                 # Scale the contact force for visualization
@@ -78,31 +76,14 @@ class simulator(Node):
                 force_endpoint = [
                     contact_position[i] + scaled_force[i] for i in range(3)
                 ]
-
-                
                 # Add a debug line to represent the contact force
                 self.pybullet_client.addUserDebugLine(contact_position,
                                 force_endpoint,
                                 lineColorRGB=[1, 0, 0], lineWidth=3, lifeTime=0.1)            
 
-
         self.pybullet_client.stepSimulation()
 
             # todo:debug line 
-
-
-
-    # def run(self):
-    #     self.pybullet_client.setAdditionalSearchPath(pd.getDataPath())
-    #     self.planeID = self.pybullet_client.loadURDF("plane.urdf")
-    #     # self.a1 = self.pybullet_client.loadURDF("urdf/a1.urdf")
-    #     self.pybullet_client.setGravity(0, 0, -9.8)
-    #     dt = 1.0 / 240.0  # Simulation time step
-    #     self.pybullet_client.setTimeStep(dt)
-
-    #     while rclpy.ok():
-    #         start_time = time.time()
-    #         self.pybullet_client.stepSimulation()
 
 
 

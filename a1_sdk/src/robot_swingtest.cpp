@@ -94,7 +94,6 @@ public:
         pose[0] += joy_msg->axes[0] / 100;
         pose[1] += joy_msg->axes[1] / 100;
         pose[2] += joy_msg->axes[6] / 100;
-        std::cout << "pose==" << pose[0] << " " << pose[1] << " " << pose[2] << " " << std::endl;
 
     if(pose[0] > 0){
         _posGoal(0) = invNormalize(pose[0], _initPos(0), _initPos(0)+_xMax, 0, 1);
@@ -152,11 +151,6 @@ public:
     _feetPos.col(0) = _posGoal;
     _targetPos = robotModel->getQ(_feetPos, FrameType::HIP);
     // Lowcmd->setQ(_targetPos);
-    std::cout<<"_targetPos="<<_targetPos<<std::endl;
-    for (int i = 0; i < 3; i++)
-    {
-    std::cout<<"Lowstate="<<Lowstate->motorState[i].q<<std::endl;    
-    }
 
 
 
@@ -164,27 +158,10 @@ public:
 
     Vec3 pos0 = robotModel->getFootPosition(*Lowstate, 0, FrameType::HIP);
     Vec3 vel0 = robotModel->getFootVelocity(*Lowstate, 0);
-    // std::cout<<"vel0="<<vel0<<std::endl;
-
     Vec3 force0 = _Kp*(_posGoal - pos0) + _Kd*(-vel0);
-
-    std::cout<<"_posGoal="<<_posGoal<<std::endl;
-    std::cout<<"pos0="<<pos0<<std::endl;
-
-    // std::cout<<"force0="<<force0<<std::endl;
-
     Vec12 torque;
     Mat3 jaco0 = robotModel->getJaco(*Lowstate, 0);
-    // std::cout<<"jaco0="<<jaco0<<std::endl;
-
     torque.segment(0, 3) = jaco0.transpose() * force0;
-
-    std::cout<<"torque="<<torque.segment(0, 3)<<std::endl;
-
-
-    // for (int i = 0; i<3; i++){
-    //     _tau[i] = motor_model(torque[i],_targetPos[i],Lowstate->motorState[i].q, 0.0,Lowstate->motorState[i].dq );
-    // };
     std::cout<<"_tau"<<_tau<<std::endl;
     for (int i = 0; i<12; i++){
             cmd_joints.joints_torque[i] = torque[i];
@@ -205,9 +182,6 @@ public:
 
 
     double motor_model(float _tauff,float _qGoal,float _qCur,float _qdGoal,float _qdCur){
-        // std::cout<<"_qGoal="<<_qGoal<<std::endl;
-        // std::cout<<"_qCur="<<_qCur<<std::endl;
-
         float Kp =10.;
         float Kd =2.;
         float _tau_result;
@@ -233,11 +207,9 @@ private:
     float _yMin, _yMax;
     float _zMin, _zMax;
     Mat3 _Kp, _Kd;
-
     Vec12 _q, _tau;
     Vec2 Limit;
     a1_msg::msg::JointState cmd_joints;
-
 };
 
 

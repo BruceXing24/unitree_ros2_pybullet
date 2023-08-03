@@ -81,8 +81,8 @@ void WaveGenerator::calcContactPhase(Vec4 &phaseResult, VecInt4 &contactResult, 
     phaseResult = _phase;
     contactResult = _contact;
 
-    std::cout<<"phase====" <<_phase<<std::endl;
-    std::cout<<"_contact====" <<_contact<<std::endl;
+    // std::cout<<"phase====" <<_phase<<std::endl;
+    // std::cout<<"_contact====" <<_contact<<std::endl;
 }
 
 float WaveGenerator::getTstance()
