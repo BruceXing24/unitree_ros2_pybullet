@@ -15,7 +15,7 @@ _Tstance(Tstance),_Tswing(Tswing),_feetPosBody(feetPosBody)
 
     _kx = 0.005;
     _ky = 0.005;
-    _kyaw = 0.005;
+    _kyaw = 0.5;
 
     for(int i(0); i<4; ++i){
         _feetRadius(i)    = sqrt( pow(feetPosBody(0, i), 2) + pow(feetPosBody(1, i), 2) );

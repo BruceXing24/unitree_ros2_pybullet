@@ -184,9 +184,7 @@ public:
         gaitGenerator->setGait(_vCmdGlobal.segment(0,2), _wCmdGlobal(2), _gaitHeight);  //计算得到足端轨迹
         gaitGenerator->run(_posFeetGlobalGoal, _velFeetGlobalGoal,_posFeetGlobal,_velBody,_yaw,_dYaw,_posBody);
         
-        
-
-
+    
 
 
         calcTau();
@@ -198,10 +196,8 @@ public:
 
     void calcTau()
     {   
-
         _ddPcd = _Kpp * (_pcd - _posBody) + _Kdp * (_vCmdGlobal - _velBody);
         _dWbd = _kpw * rotMatToExp(_Rd * _G2B_RotMat) + _Kdw * (Vec3(0, 0, 0) - _wvBody);
-
 
         _ddPcd(0) = saturation(_ddPcd(0), Vec2(-3, 3));
         _ddPcd(1) = saturation(_ddPcd(1), Vec2(-3, 3));
@@ -212,19 +208,14 @@ public:
         _dWbd(2) = saturation(_dWbd(2), Vec2(-10, 10));
 
         _forceFeetGlobal = - balCtrl->calF(_ddPcd, _dWbd, _B2G_RotMat, _posFeet2BGlobal, contact_result);  //阻断对外界的作用力
-
         _forceFeetBody = _G2B_RotMat * _forceFeetGlobal;
-
-
 
         for(int i(0); i<4; ++i){
             if((_contact)(i) == 0){
                 _forceFeetGlobal.col(i) = _KpSwing*(_posFeetGlobalGoal.col(i) - _posFeetGlobal.col(i)) + _KdSwing*(_velFeetGlobalGoal.col(i)-_velFeetGlobal.col(i));
             }
         }
-        
         _q = vec34ToVec12(Lowstate->getQ());
-
         _tau = robotModel->getTau(_q, _forceFeetBody);
 
 
@@ -247,13 +238,14 @@ public:
         _dq = vec34ToVec12(Lowstate->getQd());
 
 
+
         for (int i = 0; i<12; i++){
                 cmd_joints.joints_torque[i] = _tau[i];
                 cmd_joints.joints_angle[i] = _qGoal[i];
                 cmd_joints.joints_velocity[i] = _qdGoal[i];
         }
-
         joint_state_publisher->publish(cmd_joints);
+
     }
 
 

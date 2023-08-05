@@ -82,6 +82,9 @@ class simulator(Node):
 
         if self.init_counter<1000:
             self.motors.positions_control( [0,39.7, -75, 0,39.7, -75, 0,39.7, -75, 0,39.7, -75,])
+
+
+            
         else:
             if self.init_counter==1000:
                 print("torque mode control activated")
@@ -91,6 +94,8 @@ class simulator(Node):
             self.motors.torque_control(self.cmd_torque)            
             if self.init_counter % 480 ==0:
                 print("torque mode control working...")
+
+                print(self.cmd_torque)
             # time.sleep(0.01)
 
         self.pybullet_client.stepSimulation()

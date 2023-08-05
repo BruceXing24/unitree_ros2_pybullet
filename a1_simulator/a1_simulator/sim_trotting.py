@@ -100,15 +100,15 @@ class simulator(Node):
             if self.init_counter==500:
                 print("torque control activated")
                 self.motors.disable_PandV()
-
             torques = self.motors.pose2torque_2(self._desire_q,self.current_angle,self.current_vel,self._desire_dq,self._ff_tau)
+            torques = np.clip(torques,-40,40)
             self.motors.torque_control(torques)            
             if self.init_counter % 240 ==0:
                 print("torque control working")
             # time.sleep(0.01)
         self.pybullet_client.stepSimulation()
         self.init_counter+=1
-        # self.debug_line(0.01)
+        # self.debug_line(1/240.)
 
      
 
@@ -148,8 +148,8 @@ class simulator(Node):
             ]
             force_endpoint_4 = [force_endpoint_3[0],force_endpoint_2[1],force_endpoint_1[2]]
             self.pybullet_client.addUserDebugLine(contact_position,
-                            force_endpoint_4,
-                            lineColorRGB=[0, 1, 0], lineWidth=3, lifeTime=sleep_time)                
+                            np.array(force_endpoint_4),
+                            lineColorRGB=[1, 0, 0], lineWidth=4, lifeTime=sleep_time)                
 
 
 
