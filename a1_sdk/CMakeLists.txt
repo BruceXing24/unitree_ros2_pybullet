@@ -18,6 +18,8 @@ find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(a1_msg REQUIRED)
+find_package(std_srvs REQUIRED)
+
 
 include_directories(
     include
@@ -48,7 +50,7 @@ add_executable(robot_trotting src/robot_trotting.cpp ${SRC_LIST})
 
 ament_target_dependencies(robot_joint rclcpp std_msgs sensor_msgs geometry_msgs a1_msg)
 ament_target_dependencies(robot_balance rclcpp std_msgs sensor_msgs geometry_msgs a1_msg)
-ament_target_dependencies(robot_trotting rclcpp std_msgs sensor_msgs geometry_msgs a1_msg)
+ament_target_dependencies(robot_trotting rclcpp std_msgs sensor_msgs geometry_msgs a1_msg std_srvs)
 ament_target_dependencies(robot_swingtest rclcpp std_msgs sensor_msgs geometry_msgs a1_msg)
 
 

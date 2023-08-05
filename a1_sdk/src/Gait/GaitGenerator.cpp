@@ -54,6 +54,7 @@ void GaitGenerator::run(Vec34 &feetPos, Vec34 &feetVel,Vec34 _feetPos,Vec3 _body
             feetVel.col(i).setZero();
         }
         else{
+            
             _endP.col(i) = calFootPos(i, _vxyGoal, _dYawGoal, (*_phase)(i),_bodyVelGlobal,_yaw,_dYaw,_footPos);
             feetPos.col(i) = getFootPos(i);
             feetVel.col(i) = getFootVel(i);
@@ -125,7 +126,7 @@ Vec3 GaitGenerator::calFootPos(int legID, Vec2 vxyGoalGlobal, float dYawGoal, fl
     // _yaw = _lowState->getYaw();
     // _dYaw = _lowState->getDYaw();
 
-    std::cout<<"_nextYaw=="<<_nextYaw<<std::endl;
+    // std::cout<<"_nextYaw=="<<_nextYaw<<std::endl;
     _nextYaw = _dYaw*(1-phase)*_Tswing + _dYaw*_Tstance/2 + _kyaw*(dYawGoal - _dYaw);
 
     _nextStep(0) += _feetRadius(legID) * cos(_yaw + _feetInitAngle(legID) + _nextYaw);

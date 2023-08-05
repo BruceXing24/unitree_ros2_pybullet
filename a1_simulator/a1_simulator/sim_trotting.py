@@ -10,6 +10,7 @@ from a1_msg.msg import RobotStates
 from a1_msg.msg import JointState
 from a1_msg.msg import ContactDetection
 from a1_msg.msg import FeetState
+from std_srvs.srv import SetBool
 
 class simulator(Node):
     def __init__(self,name):
@@ -32,7 +33,6 @@ class simulator(Node):
         self.pybullet_client.setDebugObjectColor(self.robot_id, -1, objectDebugColorRGB=[1, 0, 0])
         self.pybullet_client.changeDynamics(self.planeID, linkIndex=-1, lateralFriction=1.0)
 
-
         # ros2 settinhg
         self.create_timer(dt,self.timer_callback)
         self.motors = Motors(self.pybullet_client,self.robot_id)
@@ -47,6 +47,9 @@ class simulator(Node):
         self.jointState_pub = self.create_publisher(JointState,"/joint_state",1)
         self.contact_pub = self.create_publisher(ContactDetection, "/estimator/contacts",1)
         self.footState_pub = self.create_publisher(FeetState,"/estimator/feet_state",1)
+        self.init_client = self.create_client(SetBool,"sim_initial")
+        self.req = SetBool.Request()
+        self.req.data = True
 
         self._ff_tau = np.array([0]*12)
         self._desire_q = np.array([0.]*12)
@@ -103,8 +106,13 @@ class simulator(Node):
             torques = self.motors.pose2torque_2(self._desire_q,self.current_angle,self.current_vel,self._desire_dq,self._ff_tau)
             torques = np.clip(torques,-40,40)
             self.motors.torque_control(torques)            
-            if self.init_counter % 240 ==0:
-                print("torque control working")
+            if self.init_counter % 2400 ==0:
+                print("under torque control mode")
+
+            if self.init_counter ==1200:
+                self.init_request()
+                self.get_logger().info("inilization done")
+
             # time.sleep(0.01)
         self.pybullet_client.stepSimulation()
         self.init_counter+=1
@@ -112,6 +120,11 @@ class simulator(Node):
 
      
 
+    def init_request(self):
+        self.result = self.init_client.call_async(self.req).add_done_callback(self.init_callback)
+    def init_callback(self,future_result):
+        response = future_result.result()
+        self.get_logger().info(f"result：{response.success}")
 
 
     def debug_line(self,sleep_time):

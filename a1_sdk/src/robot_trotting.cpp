@@ -14,6 +14,7 @@
 #include "a1_msg/msg/joint_state.hpp"
 #include "a1_msg/msg/contact_detection.hpp"
 #include "a1_msg/msg/feet_state.hpp"
+#include "std_srvs/srv/set_bool.hpp"
 
 class SendJointPosition : public rclcpp::Node
 {
@@ -30,10 +31,11 @@ public:
 
         timer_ = this->create_wall_timer(std::chrono::milliseconds(2), std::bind(&SendJointPosition::publishJointAngles, this));
         joint_state_publisher = this->create_publisher<a1_msg::msg::JointState>("/cmd_joints",1);       
-
+        init_server = this->create_service<std_srvs::srv::SetBool>("sim_initial",std::bind(&SendJointPosition::handle_sim_init,this,std::placeholders::_1, std::placeholders::_2));
         pose.resize(4);
         pose = {0, 0, 0, 0};
-
+        
+        init_flag = false;
   
 
 
@@ -102,11 +104,11 @@ public:
         std::cout << "pose0==" << pose[0]   << std::endl;
         std::cout << "pose3==" << pose[3]  << std::endl;
 
-        _vCmdGlobal << pose[1]+0.1, pose[0] , 0;
+        _vCmdGlobal << pose[1], pose[0] , 0;
         _wCmdGlobal << 0, 0, pose[3];
         if(joy_msg->buttons[6]){
             pose[0] = 0;
-            pose[1] = -0.1;
+            pose[1] = 0;
             pose[2] = 0;
             pose[3] = 0;
         }
@@ -178,8 +180,8 @@ public:
         gaitGenerator->_contact = &contact_result;
         // std::cout<<"contact_result=="<<contact_result<<std::endl;
         // _contact = contact_result;
-        std::cout<<"_wCmdGlobal(2)=="<<_wCmdGlobal(2)<<std::endl;
-        std::cout<<"_dYaw=="<<_dYaw<<std::endl;
+        // std::cout<<"_wCmdGlobal(2)=="<<_wCmdGlobal(2)<<std::endl;
+        // std::cout<<"_dYaw=="<<_dYaw<<std::endl;
 
         gaitGenerator->setGait(_vCmdGlobal.segment(0,2), _wCmdGlobal(2), _gaitHeight);  //计算得到足端轨迹
         gaitGenerator->run(_posFeetGlobalGoal, _velFeetGlobalGoal,_posFeetGlobal,_velBody,_yaw,_dYaw,_posBody);
@@ -238,13 +240,15 @@ public:
         _dq = vec34ToVec12(Lowstate->getQd());
 
 
-
+        if (init_flag==true){
         for (int i = 0; i<12; i++){
                 cmd_joints.joints_torque[i] = _tau[i];
                 cmd_joints.joints_angle[i] = _qGoal[i];
                 cmd_joints.joints_velocity[i] = _qdGoal[i];
         }
         joint_state_publisher->publish(cmd_joints);
+        }
+
 
     }
 
@@ -252,11 +256,22 @@ public:
 
 
 private:
+
+    void handle_sim_init(const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+    std::shared_ptr<std_srvs::srv::SetBool::Response> response){
+    RCLCPP_INFO(this->get_logger(), "initlization done!");
+    response->success = request->data;
+    init_flag = request->data;
+    }
+
+
+
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscription;
     rclcpp::Subscription<a1_msg::msg::RobotStates>::SharedPtr estimator_subscription;
     rclcpp::Subscription<a1_msg::msg::JointState>::SharedPtr jointState_subscription;
     rclcpp::Subscription<a1_msg::msg::ContactDetection>::SharedPtr contacts_subscription;
     rclcpp::Subscription<a1_msg::msg::FeetState>::SharedPtr feetState_subscription;
+    rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr init_server;
 
     rclcpp::Publisher<a1_msg::msg::JointState>::SharedPtr joint_state_publisher;
     rclcpp::TimerBase::SharedPtr timer_;
@@ -285,6 +300,7 @@ private:
     double _yaw,_dYaw, _gaitHeight;
     Vec3 _vCmdGlobal,_wCmdGlobal;
     Mat3 _KpSwing, _KdSwing;
+    bool init_flag;
 
 };
 

@@ -83,8 +83,6 @@ class simulator(Node):
         if self.init_counter<1000:
             self.motors.positions_control( [0,39.7, -75, 0,39.7, -75, 0,39.7, -75, 0,39.7, -75,])
 
-
-            
         else:
             if self.init_counter==1000:
                 print("torque mode control activated")
