@@ -46,7 +46,7 @@ To get a local copy up and running follow these simple example steps.
    ```sh
    git clone https://github.com/BruceXing24/unitree_ros2_pybullet
    ```
-3. Install NPM packages
+3. build
    ```sh
    cd ..
    colcon build --symlink-install
