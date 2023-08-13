@@ -47,11 +47,13 @@ add_executable(robot_joint src/robot_joint.cpp ${SRC_LIST})
 add_executable(robot_balance src/robot_balance.cpp ${SRC_LIST})
 add_executable(robot_swingtest src/robot_swingtest.cpp ${SRC_LIST})
 add_executable(robot_trotting src/robot_trotting.cpp ${SRC_LIST})
+add_executable(robot_mpc src/robot_mpc.cpp ${SRC_LIST})
 
 ament_target_dependencies(robot_joint rclcpp std_msgs sensor_msgs geometry_msgs a1_msg)
 ament_target_dependencies(robot_balance rclcpp std_msgs sensor_msgs geometry_msgs a1_msg)
 ament_target_dependencies(robot_trotting rclcpp std_msgs sensor_msgs geometry_msgs a1_msg std_srvs)
 ament_target_dependencies(robot_swingtest rclcpp std_msgs sensor_msgs geometry_msgs a1_msg)
+ament_target_dependencies(robot_mpc rclcpp std_msgs sensor_msgs geometry_msgs a1_msg std_srvs)
 
 
 install(TARGETS
@@ -59,5 +61,6 @@ install(TARGETS
   robot_balance
   robot_swingtest
   robot_trotting
+  robot_mpc
   DESTINATION lib/${PROJECT_NAME}
 )

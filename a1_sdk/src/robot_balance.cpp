@@ -154,9 +154,6 @@ public:
         _ddPcd = _Kpp * (_pcd - _posBody) + _Kdp * (Vec3(0, 0, 0) - _velBody);
         _dWbd = _kpw * rotMatToExp(_Rd * _G2B_RotMat) + _Kdw * (Vec3(0, 0, 0) - _wvBody);
         _posFeet2BGlobal = robotModel->getFeet2BPositions(*Lowstate,FrameType::GLOBAL);
-
-
-
         _forceFeetGlobal = - balCtrl->calF(_ddPcd, _dWbd, _B2G_RotMat, _posFeet2BGlobal, _contact);  //阻断对外界的作用力
         _forceFeetBody = _G2B_RotMat * _forceFeetGlobal;
 

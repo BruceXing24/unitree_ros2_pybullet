@@ -15,33 +15,37 @@
 #include "a1_msg/msg/contact_detection.hpp"
 #include "a1_msg/msg/feet_state.hpp"
 #include "std_srvs/srv/set_bool.hpp"
+#include "control/MpcCtrl.h"
 
-class SendJointPosition : public rclcpp::Node
+class MPCLocomotion : public rclcpp::Node
 {
 
 public:
-    SendJointPosition() : Node("state_balance")
+    MPCLocomotion() : Node("MPClocomotion")
     {
 
-        joy_subscription = this->create_subscription<sensor_msgs::msg::Joy>("joy", 1, std::bind(&SendJointPosition::joyCallback, this, std::placeholders::_1));
-        estimator_subscription = this->create_subscription<a1_msg::msg::RobotStates>("/estimator/robot_state", 1, std::bind(&SendJointPosition::estiCallback, this, std::placeholders::_1));
-        jointState_subscription = this->create_subscription<a1_msg::msg::JointState>("/joint_state", 1, std::bind(&SendJointPosition::jointState_Callback, this, std::placeholders::_1));
-        contacts_subscription = this->create_subscription<a1_msg::msg::ContactDetection>("/estimator/contacts",1,std::bind(&SendJointPosition::contact_Callback, this, std::placeholders::_1));
-        feetState_subscription = this->create_subscription<a1_msg::msg::FeetState>("/estimator/feet_state",1,std::bind(&SendJointPosition::feetState_Callback, this, std::placeholders::_1));
+        joy_subscription = this->create_subscription<sensor_msgs::msg::Joy>("joy", 1, std::bind(&MPCLocomotion::joyCallback, this, std::placeholders::_1));
+        estimator_subscription = this->create_subscription<a1_msg::msg::RobotStates>("/estimator/robot_state", 1, std::bind(&MPCLocomotion::estiCallback, this, std::placeholders::_1));
+        jointState_subscription = this->create_subscription<a1_msg::msg::JointState>("/joint_state", 1, std::bind(&MPCLocomotion::jointState_Callback, this, std::placeholders::_1));
+        contacts_subscription = this->create_subscription<a1_msg::msg::ContactDetection>("/estimator/contacts",1,std::bind(&MPCLocomotion::contact_Callback, this, std::placeholders::_1));
+        feetState_subscription = this->create_subscription<a1_msg::msg::FeetState>("/estimator/feet_state",1,std::bind(&MPCLocomotion::feetState_Callback, this, std::placeholders::_1));
 
-        timer_ = this->create_wall_timer(std::chrono::milliseconds(2), std::bind(&SendJointPosition::publishJointAngles, this));
+        timer_ = this->create_wall_timer(std::chrono::milliseconds(2), std::bind(&MPCLocomotion::publishJointAngles, this));
         joint_state_publisher = this->create_publisher<a1_msg::msg::JointState>("/cmd_joints",1);       
-        init_server = this->create_service<std_srvs::srv::SetBool>("sim_initial",std::bind(&SendJointPosition::handle_sim_init,this,std::placeholders::_1, std::placeholders::_2));
-        pose.resize(4);
-        pose = {0, 0, 0, 0};
+        init_server = this->create_service<std_srvs::srv::SetBool>("sim_initial",std::bind(&MPCLocomotion::handle_sim_init,this,std::placeholders::_1, std::placeholders::_2));
+        _joy_cmd.resize(4);
+        _joy_cmd = {0, 0, 0, 0};
         
         init_flag = false;
   
-
-
         _pcdInit << -0.0, -0.0046, 0.327;
         _pcd = _pcdInit;
+        
         _wvBody = Vec3(0.0, 0.0, 0.0);
+        _rpyBody<<0,0,0;
+        _posBody<<-0.0, -0.0046, 0.327;
+        _velBody<<0,0,0;
+
         _RdInit = rpyToRotMat(0, 0, 0);
 
         _Kpp = Vec3(150, 150, 150).asDiagonal(); // 8.17 Kp
@@ -54,10 +58,14 @@ public:
         _KdSwing = Vec3(10, 10, 10).asDiagonal();
         _gaitHeight = 0.08;
 
+
+
         Lowstate = new LowlevelState();
         Lowcmd = new LowlevelCmd();
         robotModel = new A1Robot();
         balCtrl = new BalanceCtrl(robotModel);
+        mpcCtrl = new MpcCtrl(robotModel);
+        
         gaitWave = new WaveGenerator(0.45, 0.5, Vec4(0, 0.5, 0.5, 0));
         gaitGenerator = new GaitGenerator(gaitWave->getTstance(),gaitWave->getTswing(),robotModel->getFeetPosIdeal());
 
@@ -76,7 +84,7 @@ public:
         }
     }
 
-    ~SendJointPosition()
+    ~MPCLocomotion()
     {
         delete Lowstate;
         delete Lowcmd;
@@ -84,8 +92,8 @@ public:
         delete balCtrl;
         delete gaitWave;
         delete gaitGenerator;
+        delete mpcCtrl;
     }
-
 
     LowlevelState *Lowstate;
     LowlevelCmd *Lowcmd;
@@ -93,25 +101,27 @@ public:
     BalanceCtrl *balCtrl;
     WaveGenerator * gaitWave;
     GaitGenerator *gaitGenerator;
+    MpcCtrl * mpcCtrl;
+
+    // receive cmd from joy sticker
     void joyCallback(const sensor_msgs::msg::Joy::SharedPtr joy_msg)
     {
-        pose[0] += joy_msg->axes[0] / 100;
-        pose[1] += joy_msg->axes[1] / 100;
-        pose[2] += joy_msg->axes[6] / 100;
-        pose[3] += joy_msg->axes[7] / 100;
-        // std::cout << "pose==" << pose[0] << " " << pose[1] << " " << pose[2] << " " << pose[3] << std::endl;
-        std::cout << "pose1==" << pose[1] << std::endl;
-        std::cout << "pose0==" << pose[0]   << std::endl;
-        std::cout << "pose3==" << pose[3]  << std::endl;
+        _joy_cmd[0] += joy_msg->axes[0] / 100;
+        _joy_cmd[1] += joy_msg->axes[1] / 100;
+        _joy_cmd[2] += joy_msg->axes[6] / 100;
+        _joy_cmd[3] += joy_msg->axes[7] / 100;
 
-        _vCmdGlobal << pose[1], pose[0] , 0;
-        _wCmdGlobal << 0, 0, pose[3];
+        _vCmdGlobal << _joy_cmd[1], _joy_cmd[0] , 0;
+        _wCmdGlobal << 0, 0, _joy_cmd[3];
         if(joy_msg->buttons[6]){
-            pose[0] = 0;
-            pose[1] = 0;
-            pose[2] = 0;
-            pose[3] = 0;
+            _joy_cmd[0] = 0;
+            _joy_cmd[1] = 0;
+            _joy_cmd[2] = 0;
+            _joy_cmd[3] = 0;
         }
+        //todo add filter
+
+
     }
     void estiCallback(const a1_msg::msg::RobotStates::SharedPtr robot_state)
     {
@@ -122,6 +132,7 @@ public:
         _B2G_RotMat = rpyToRotMat(robot_state->robot_ori_s[0], robot_state->robot_ori_s[1], robot_state->robot_ori_s[2]);
         _G2B_RotMat = _B2G_RotMat.transpose();
         _rpyBody << robot_state->robot_ori_s[0], robot_state->robot_ori_s[1], robot_state->robot_ori_s[2];
+
 
     }
     
@@ -138,9 +149,10 @@ public:
         
         // std::cout<<"_posFeetGlobal=="<<_posFeetGlobal<<std::endl;
         // std::cout<<"_velFeetGlobal=="<<_velFeetGlobal<<std::endl;
-
     }
 
+
+    //up date joints state
     void jointState_Callback(const a1_msg::msg::JointState joint_state)
     {   
         for (int i = 0; i < 12; i++)
@@ -154,6 +166,7 @@ public:
         }
     }
 
+    //update contact
     void contact_Callback(const a1_msg::msg::ContactDetection contacts){
 
         for (int i=0;i <4;i++){
@@ -161,6 +174,7 @@ public:
         }
     }
 
+    // whole run !
     void publishJointAngles()
     {
         _pcd(0) = saturation(_pcd(0) + _vCmdGlobal(0) * 0.02, Vec2(_posBody(0) - 0.05, _posBody(0) + 0.05));
@@ -173,26 +187,14 @@ public:
 
         _posFeet2BGlobal = robotModel->getFeet2BPositions(*Lowstate,FrameType::GLOBAL);
 
-
-
         gaitWave->calcContactPhase(phase_result,contact_result,WaveStatus::WAVE_ALL);
         gaitGenerator->_phase = &phase_result;
         gaitGenerator->_contact = &contact_result;
-        // std::cout<<"contact_result=="<<contact_result<<std::endl;
-        // _contact = contact_result;
-        // std::cout<<"_wCmdGlobal(2)=="<<_wCmdGlobal(2)<<std::endl;
-        // std::cout<<"_dYaw=="<<_dYaw<<std::endl;
-        // std::cout<<"_yaw=="<<_yaw<<std::endl;
-
         gaitGenerator->setGait(_vCmdGlobal.segment(0,2), _wCmdGlobal(2), _gaitHeight);  //计算得到足端轨迹
         gaitGenerator->run(_posFeetGlobalGoal, _velFeetGlobalGoal,_posFeetGlobal,_velBody,_yaw,_dYaw,_posBody);
         
-    
-
-
         calcTau();
         calcQQd(); 
-
     }
 
 
@@ -210,8 +212,33 @@ public:
         _dWbd(1) = saturation(_dWbd(1), Vec2(-40, 40));
         _dWbd(2) = saturation(_dWbd(2), Vec2(-10, 10));
 
+        // 1.set trajectory;
+        // 2.transfer tajectory to mpc; 
+        // 3.transfer state from est to mpc;
+        trajInitial << _rpyBody[0],_rpyBody[1],_rpyBody[2],
+                       _posBody[0],_posBody[2],_posBody[2],
+                       0,          0,          _joy_cmd[2],
+                       _joy_cmd[0],_joy_cmd[1], 0; 
+
+        mpcCtrl->getTrajall(trajInitial,_joy_cmd);
+        mpcCtrl->getIg(_B2G_RotMat);
+        mpcCtrl->getState(_rpyBody,_posBody,_wvBody,_velBody);
+        mpcCtrl->getFeetPosition(robotModel->getFeet2BPositions(*Lowstate,FrameType::BODY));
+
+                        
+
+
+
+
+
+
         _forceFeetGlobal = - balCtrl->calF(_ddPcd, _dWbd, _B2G_RotMat, _posFeet2BGlobal, contact_result);  //阻断对外界的作用力
         _forceFeetBody = _G2B_RotMat * _forceFeetGlobal;
+
+
+
+
+
 
         for(int i(0); i<4; ++i){
             if((_contact)(i) == 0){
@@ -249,8 +276,6 @@ public:
         }
         joint_state_publisher->publish(cmd_joints);
         }
-
-
     }
 
 
@@ -260,28 +285,33 @@ private:
 
     void handle_sim_init(const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
     std::shared_ptr<std_srvs::srv::SetBool::Response> response){
+    
+    
     RCLCPP_INFO(this->get_logger(), "initlization done!");
     response->success = request->data;
     init_flag = request->data;
+
+
     }
 
 
-
+    // ros2 communication
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscription;
     rclcpp::Subscription<a1_msg::msg::RobotStates>::SharedPtr estimator_subscription;
     rclcpp::Subscription<a1_msg::msg::JointState>::SharedPtr jointState_subscription;
     rclcpp::Subscription<a1_msg::msg::ContactDetection>::SharedPtr contacts_subscription;
     rclcpp::Subscription<a1_msg::msg::FeetState>::SharedPtr feetState_subscription;
     rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr init_server;
-
     rclcpp::Publisher<a1_msg::msg::JointState>::SharedPtr joint_state_publisher;
     rclcpp::TimerBase::SharedPtr timer_;
-    std::vector<float> pose;
+    a1_msg::msg::JointState cmd_joints;
 
+    
+    std::vector<float> _joy_cmd;
     VecInt4 _contact,contact_result;
 
+
     Vec4 phase_result;
-    a1_msg::msg::JointState cmd_joints;
     RotMat _Rd, _RdInit;
     Vec3 _pcd, _pcdInit;
     double _kpw;
@@ -301,6 +331,10 @@ private:
     double _yaw,_dYaw, _gaitHeight;
     Vec3 _vCmdGlobal,_wCmdGlobal;
     Mat3 _KpSwing, _KdSwing;
+
+
+    Vec12 trajInitial;
+    //simulator service initilization
     bool init_flag;
 
 };
@@ -309,7 +343,7 @@ private:
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<SendJointPosition>();
+    auto node = std::make_shared<MPCLocomotion>();
     /* 运行节点，并检测退出信号*/
     rclcpp::spin(node);
     rclcpp::shutdown();

@@ -54,7 +54,7 @@ void GaitGenerator::run(Vec34 &feetPos, Vec34 &feetVel,Vec34 _feetPos,Vec3 _body
             feetVel.col(i).setZero();
         }
         else{
-            
+
             _endP.col(i) = calFootPos(i, _vxyGoal, _dYawGoal, (*_phase)(i),_bodyVelGlobal,_yaw,_dYaw,_footPos);
             feetPos.col(i) = getFootPos(i);
             feetVel.col(i) = getFootVel(i);
@@ -125,12 +125,19 @@ Vec3 GaitGenerator::calFootPos(int legID, Vec2 vxyGoalGlobal, float dYawGoal, fl
 
     // _yaw = _lowState->getYaw();
     // _dYaw = _lowState->getDYaw();
+    std::cout<<"legID==="<<legID<<std::endl;
 
+
+    // std::cout<<"_feetInitAngle(legID)==="<<_feetInitAngle(legID)<<std::endl;
+    // std::cout<<"_yaw==="<<_yaw<<std::endl;
+    // std::cout<<"dYawGoal==="<<dYawGoal<<std::endl;
+    // std::cout<<"_feetRadius(legID) "<<_feetRadius(legID) <<std::endl;
     // std::cout<<"_nextYaw=="<<_nextYaw<<std::endl;
     _nextYaw = _dYaw*(1-phase)*_Tswing + _dYaw*_Tstance/2 + _kyaw*(dYawGoal - _dYaw);
+    _nextStep(0) += _feetRadius(legID) * cos(_yaw +_feetInitAngle(legID) + _nextYaw);
+    _nextStep(1) += _feetRadius(legID) * sin(_yaw +_feetInitAngle(legID) + _nextYaw);
 
-    _nextStep(0) += _feetRadius(legID) * cos(_yaw + _feetInitAngle(legID) + _nextYaw);
-    _nextStep(1) += _feetRadius(legID) * sin(_yaw + _feetInitAngle(legID) + _nextYaw);
+    std::cout<<"_nextStep==="<<_nextStep<<std::endl;
     
     _footPos = _footPos+_nextStep;
     // _footPos = _est->getPosition() + _nextStep;  _est->getPosition() return robot center coordinate
@@ -138,3 +145,50 @@ Vec3 GaitGenerator::calFootPos(int legID, Vec2 vxyGoalGlobal, float dYawGoal, fl
     return _footPos;
 
 }
+
+
+// #feetInitAngle(legID)===2.537
+// _yaw===-0.002
+// dYawGoal===0.000
+// _feetInitAngle(legID)===-0.605
+// _yaw===-0.002
+// dYawGoal===0.000
+// _feetInitAngle(legID)===2.537
+// _yaw===-0.002
+// dYawGoal===0.000
+// _feetInitAngle(legID)===-0.605
+// _yaw===-0.002
+// dYawGoal===0.000
+// _feetInitAngle(legID)===2.537
+// _yaw===-0.002
+// dYawGoal===0.000
+// _feetInitAngle(legID)===-0.605
+// _yaw===-0.001
+// dYawGoal===0.000
+// _feetInitAngle(legID)===2.537
+// _yaw===-0.001
+// dYawGoal===0.000
+// _feetInitAngle(legID)===-0.605
+// _yaw===-0.001
+// dYawGoal===0.000
+// _feetInitAngle(legID)===2.537
+
+
+// _yaw===-2.282
+// dYawGoal===0.250
+// _feetInitAngle(legID)===-2.537
+// _yaw===-2.282
+// dYawGoal===0.250
+// _feetInitAngle(legID)===0.605
+// _yaw===-2.282
+// dYawGoal===0.250
+// _feetInitAngle(legID)===-2.537
+// _yaw===-2.282
+// dYawGoal===0.250
+// _feetInitAngle(legID)===0.605
+// _yaw===-2.282
+// dYawGoal===0.250
+// _feetInitAngle(legID)===-2.537
+// _yaw===-2.282
+// dYawGoal===0.250
+// _feetInitAngle(legID)===0.605

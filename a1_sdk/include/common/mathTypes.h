@@ -33,6 +33,9 @@ using VecInt4 = typename Eigen::Matrix<int, 4, 1>;
 // 12x1 Vector
 using Vec12 = typename Eigen::Matrix<double, 12, 1>;
 
+// 13x1 Vector
+using Vec13 = typename Eigen::Matrix<double, 13, 1>;
+
 // 18x1 Vector
 using Vec18 = typename Eigen::Matrix<double, 18, 1>;
 
@@ -65,6 +68,9 @@ using Mat6 = typename Eigen::Matrix<double, 6, 6>;
 
 // 12x12 Matrix
 using Mat12 = typename Eigen::Matrix<double, 12, 12>;
+
+//13x13 Matrix
+using Mat13 = typename Eigen::Matrix<double, 13, 13>;
 
 // 12x12 Identity Matrix
 #define I12 Eigen::MatrixXd::Identity(12, 12)
